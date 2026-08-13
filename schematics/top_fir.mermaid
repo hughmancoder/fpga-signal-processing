@@ -1,0 +1,53 @@
+flowchart LR
+    %% Inputs and Outputs
+    clk([i_clk])
+    rst([i_rst])
+
+
+    %% Components
+    vadc["u_vadc: vadc<br/>g_width = 16"]
+    hilbert["u_hilbert: hilbert<br/>g_nbits = 16"]
+    concat["Concat AXI Data<br/>w_hilbert_q and w_hilbert_i"]
+    fir["u_fir_lpf: fir_lpf<br/>Xilinx FIR IP"]
+    slice["Slice FIR Data<br/>I: [33:18], Q: [73:58]"]
+
+    %% Debug Probes
+    %% dbg_adc((ILA / Debug))
+    %% dbg_hi((ILA / Debug))
+    %% dbg_hq((ILA / Debug))
+    %% dbg_fi((ILA / Debug))
+    %% dbg_fq((ILA / Debug))
+
+    %% Connections
+    sw -->|Test Hardware| led 
+    
+    clk --> vadc
+    rst --> vadc
+    vadc -->|w_adc_data: 16-bit| hilbert
+    %% vadc -.-> dbg_adc
+
+    clk --> hilbert
+    rst --> hilbert
+    
+    hilbert -->|w_hilbert_i: 16-bit| concat
+    hilbert -->|w_hilbert_q: 16-bit| concat
+    %% hilbert -.-> dbg_hi
+    %% hilbert -.-> dbg_hq
+
+    concat -->|w_tdata_in: 32-bit| fir
+    
+    clk --> fir
+    fir -->|w_tdata_out: 80-bit| slice
+
+    slice -.->|w_fir_i: 16-bit| dbg_fi
+    slice -.->|w_fir_q: 16-bit| dbg_fq
+
+    %% Styling
+    classDef io fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#000
+    classDef comp fill:#cce5ff,stroke:#007bff,stroke-width:2px,color:#000
+    classDef logic fill:#e2e3e5,stroke:#6c757d,stroke-width:2px,color:#000
+    classDef debug fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#000
+    class clk,rst,sw,led io
+    class vadc,hilbert,fir comp
+    class concat,slice logic
+    class dbg_adc,dbg_hi,dbg_hq,dbg_fi,dbg_fq debug

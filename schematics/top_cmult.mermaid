@@ -1,0 +1,65 @@
+flowchart LR
+    %% Inputs and Outputs
+    clk([i_clk])
+    rst([i_rst])
+    %% sw([i_sw])
+    %% led([o_led])
+
+    %% Top Level Components
+    count["u_counter<br/>10-bit"]
+    rom["u_rom_rand<br/>1024 x 16-bit"]
+    
+ 
+    %% Top Level Connections
+    %% sw --> led
+    clk --> count; rst --> count
+    count -->|w_count| rom
+    clk --> rom
+    %% rom -.-> dbg_rom
+
+    %% Complex Multiplier Subgraph
+    subgraph u_cmult ["u_cmult: cmult (3-Stage Pipeline)"]
+        direction LR
+        
+        %% Pipeline Stage 1
+        reg_in["Stage 1: Input Registers<br/>f_data_a_i, f_data_a_q<br/>f_data_b_i, f_data_b_q"]
+        
+        %% Pipeline Stage 2 (Multipliers)
+        mult_ii["f_aibi<br/>(a_i × b_i)"]
+        mult_qq["f_aqbq<br/>(a_q × b_q)"]
+        mult_iq["f_aibq<br/>(a_i × b_q)"]
+        mult_qi["f_aqbi<br/>(a_q × b_i)"]
+        
+        %% Pipeline Stage 3 (Adders/Regs)
+        sub_real["Real Part (Inphase): Subtractor and Reg<br/>f_data_c_i = f_aibi - f_aqbq"]
+        add_imag["Complex Part (Quadrature): Adder and Reg<br/>f_data_c_q = f_aibq + f_aqbi"]
+        
+        %% Internal Routing
+        reg_in -->|a_i, b_i| mult_ii
+        reg_in -->|a_q, b_q| mult_qq
+        reg_in -->|a_i, b_q| mult_iq
+        reg_in -->|a_q, b_i| mult_qi
+        
+        mult_ii --> sub_real
+        mult_qq --> sub_real
+        
+        mult_iq --> add_imag
+        mult_qi --> add_imag
+    end
+
+    %% Connect ROM to the 4 inputs of cmult
+    rom -->|w_rom_rand| reg_in
+    
+
+    %% Styling
+    classDef io fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#000
+    classDef comp fill:#cce5ff,stroke:#007bff,stroke-width:2px,color:#000
+    classDef math fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#000
+    classDef reg fill:#e2e3e5,stroke:#6c757d,stroke-width:2px,color:#000
+    classDef debug fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#000
+    
+    class clk,rst,sw,led io
+    class count,rom comp
+    class reg_in reg
+    class mult_ii,mult_qq,mult_iq,mult_qi,sub_real,add_imag math
+    class dbg_rom,dbg_ci,dbg_cq debug
